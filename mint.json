@@ -1,0 +1,132 @@
+{
+  "name": "MasonHub ERP Integration",
+  "logo": {
+    "light": "/img/mh-logo.png",
+    "dark": "/img/mh-logo-inverted-rgba.png"
+  },
+  "favicon": "/img/mh-logo.png",
+  "colors": {
+    "primary": "#2563EB",
+    "light": "#3B82F6",
+    "dark": "#1D4ED8",
+    "background": {
+      "light": "#FFFFFF",
+      "dark": "#0D1117"
+    }
+  },
+  "modeToggle": {
+    "default": "light"
+  },
+  "font": {
+    "headings": {
+      "family": "Inter",
+      "weight": 600
+    },
+    "body": {
+      "family": "Inter"
+    }
+  },
+  "topbarCtaButton": {
+    "name": "Contact Support",
+    "url": "mailto:integration-support@masonhub.co"
+  },
+  "navigation": [
+    {
+      "group": "Introduction",
+      "pages": [
+        "index",
+        "overview"
+      ]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/request-access",
+        "getting-started/review-documentation"
+      ]
+    },
+    {
+      "group": "Integration",
+      "pages": [
+        "integration/architecture-flows"
+      ]
+    },
+    {
+      "group": "Testing & Validation",
+      "pages": [
+        "testing/sandbox-testing",
+        "testing/test-plan"
+      ]
+    },
+    {
+      "group": "Ship Method Configuration",
+      "pages": [
+        "ship-method-mappings/configuration"
+      ]
+    },
+
+    {
+      "group": "Getting data back into the ERP / Source System",
+      "pages": [
+        "data-sync/polling-get-calls",
+        "data-sync/callback-events"
+      ]
+    },
+    {
+      "group": "International Shipping",
+      "pages": [
+        "international/commercial-invoice-requirements"
+      ]
+    },
+    {
+      "group": "Production",
+      "pages": [
+        "production/readiness-checklist",
+        "production/go-live"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api/overview",
+        "api/authentication",
+        "api/catalog",
+        "api/orders",
+        "api/inventory",
+        "api/inbound-shipments",
+        "api/shipments",
+        "api/callbacks",
+        "api/datafactory"
+      ]
+    },
+    {
+      "group": "Support",
+      "pages": [
+        "support/contact-information",
+        "support/troubleshooting"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "website": "https://masonhub.co",
+    "linkedin": "https://linkedin.com/company/masonhub"
+  },
+  "footer": {
+    "links": [
+      {
+        "title": "Documentation",
+        "links": [
+          { "label": "Getting Started", "url": "/getting-started/request-access" },
+          { "label": "API Reference", "url": "https://docs.masonhub.co/api/v1" }
+        ]
+      },
+      {
+        "title": "Support",
+        "links": [
+          { "label": "Integration Support", "url": "mailto:integration-support@masonhub.co" },
+          { "label": "General Support", "url": "mailto:support@masonhub.co" }
+        ]
+      }
+    ]
+  }
+}
