@@ -1,0 +1,1004 @@
+---
+title: 'Order Management'
+description: 'Complete order lifecycle from creation to fulfillment with status tracking and callbacks'
+api: 'GET /orders'
+---
+
+# Order Management API
+
+The Orders API manages the complete order lifecycle from creation to fulfillment. It supports various order types, complex routing policies, asynchronous update operations, and real-time status tracking through callbacks.
+
+<Note>
+Orders progress through statuses automatically as they move through the fulfillment process. Use callbacks for real-time updates.
+</Note>
+
+## Core Operations
+
+### Get Orders
+
+<api-endpoint method="GET" url="/orders" />
+
+Retrieve orders with filtering and pagination support.
+
+<ParamField query="id" type="UUID[]">
+  MasonHub UUIDs [1..30]
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results [1..100]
+</ParamField>
+
+<ParamField query="list_type" type="string" default="detail">
+  Response detail level: `detail` or `summary`
+</ParamField>
+
+<ParamField query="sdt" type="string">
+  Start date for updated_at filter (RFC3339)
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/orders?limit=50&list_type=detail&sdt=2018-08-01T00:00:00Z" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/orders"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "limit": 50,
+    "list_type": "detail",
+    "sdt": "2018-08-01T00:00:00Z"
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/orders?limit=50&list_type=detail&sdt=2018-08-01T00:00:00Z', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "limit": 50,
+  "offset": 0,
+  "list_type": "detail",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "129374",
+      "order_type": "customer",
+      "status": "fulfilled",
+      "priority": 100,
+      "shipping_provider": "masonhub",
+      "submitted_at": "2018-08-01T00:00:00Z",
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 2,
+          "fulfilled_quantity": 2
+        }
+      ]
+    }
+  ]
+}
+```
+</ResponseExample>
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `id` | array of UUIDs | MasonHub UUIDs [1..30] | - |
+| `offset` | integer | Pagination offset | 0 |
+| `limit` | integer | Number of results [1..100] | 30 |
+| `list_type` | string | `detail` or `summary` | `detail` |
+| `sdt` | string | Start date for updated_at filter (RFC3339) | - |
+
+### Create Orders
+
+<api-endpoint method="POST" url="/orders" />
+
+Create one or more orders with comprehensive configuration options.
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique order identifier
+</ParamField>
+
+<ParamField body="order_type" type="string" required>
+  Order type (e.g., "customer")
+</ParamField>
+
+<ParamField body="priority" type="integer">
+  Order priority (higher = more urgent)
+</ParamField>
+
+<ParamField body="shipping_provider" type="string" required>
+  Shipping provider name
+</ParamField>
+
+<ParamField body="shipper_service_level" type="string" required>
+  Service level (ground, express, etc.)
+</ParamField>
+
+<ParamField body="shipping_address_name" type="string" required>
+  Recipient's full name
+</ParamField>
+
+<ParamField body="shipping_address_street_line_one" type="string" required>
+  Street address line 1
+</ParamField>
+
+<ParamField body="shipping_address_city" type="string" required>
+  City name
+</ParamField>
+
+<ParamField body="shipping_address_locale" type="string" required>
+  State/province code
+</ParamField>
+
+<ParamField body="shipping_address_postal_code" type="string" required>
+  ZIP/postal code
+</ParamField>
+
+<ParamField body="shipping_address_country_code" type="string" required>
+  Country code (e.g., "US")
+</ParamField>
+
+<ParamField body="submitted_at" type="string" required>
+  Order submission time (RFC3339)
+</ParamField>
+
+<ParamField body="line_items" type="array" required>
+  Array of order line items
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/orders" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "129374",
+      "order_type": "customer",
+      "priority": 100,
+      "shipping_provider": "masonhub",
+      "shipper_service_level": "ground",
+      "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "shipping_address_street_line_one": "234 House Lane",
+      "shipping_address_city": "Little Falls",
+      "shipping_address_locale": "NJ",
+      "shipping_address_postal_code": "07972",
+      "shipping_address_country_code": "US",
+      "shipping_address_type": "residential",
+      "submitted_at": "2018-08-01T00:00:00Z",
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 2
+        }
+      ]
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/orders"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "129374",
+        "order_type": "customer",
+        "priority": 100,
+        "shipping_provider": "masonhub",
+        "shipper_service_level": "ground",
+        "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+        "shipping_address_street_line_one": "234 House Lane",
+        "shipping_address_city": "Little Falls",
+        "shipping_address_locale": "NJ",
+        "shipping_address_postal_code": "07972",
+        "shipping_address_country_code": "US",
+        "shipping_address_type": "residential",
+        "submitted_at": "2018-08-01T00:00:00Z",
+        "line_items": [
+            {
+                "sku_customer_id": "shirts872340",
+                "quantity": 2
+            }
+        ]
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/orders', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "129374",
+      order_type: "customer",
+      priority: 100,
+      shipping_provider: "masonhub",
+      shipper_service_level: "ground",
+      shipping_address_name: "John Jacob JingleHeimer-Schmidt III",
+      shipping_address_street_line_one: "234 House Lane",
+      shipping_address_city: "Little Falls",
+      shipping_address_locale: "NJ",
+      shipping_address_postal_code: "07972",
+      shipping_address_country_code: "US",
+      shipping_address_type: "residential",
+      submitted_at: "2018-08-01T00:00:00Z",
+      line_items: [
+        {
+          sku_customer_id: "shirts872340",
+          quantity: 2
+        }
+      ]
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "129374",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Validation Error
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Required field missing",
+    "details": {
+      "field": "shipping_address_name",
+      "value": null
+    }
+  }
+}
+```
+</ResponseExample>
+
+#### Required Fields
+
+<CardGroup cols={2}>
+  <Card
+    title="Order Identification"
+    icon="id-card"
+  >
+    - `customer_identifier`
+    - `order_type`
+    - `submitted_at`
+  </Card>
+  <Card
+    title="Shipping Configuration"
+    icon="truck"
+  >
+    - `shipping_provider`
+    - `shipper_service_level`
+    - Complete shipping address
+  </Card>
+  <Card
+    title="Billing Information"
+    icon="credit-card"
+  >
+    - Complete billing address
+    - Address validation fields
+  </Card>
+  <Card
+    title="Order Contents"
+    icon="box"
+  >
+    - `line_items` array
+    - SKU customer identifiers
+    - Quantities
+  </Card>
+</CardGroup>
+
+#### Address Schema
+
+Both shipping and billing addresses require complete information:
+
+<Tabs>
+  <Tab title="Required Fields">
+    ```json
+    {
+      "shipping_address_name": "John Jacob JingleHeimer-Schmidt III",
+      "shipping_address_street_line_one": "234 House Lane",
+      "shipping_address_city": "Little Falls",
+      "shipping_address_locale": "NJ",
+      "shipping_address_postal_code": "07972",
+      "shipping_address_country_code": "US",
+      "shipping_address_type": "residential"
+    }
+    ```
+  </Tab>
+  <Tab title="Optional Fields">
+    ```json
+    {
+      "shipping_address_street_line_two": "Apt 16",
+      "shipping_address_phone_number": "973-999-3333",
+      "shipping_address_company": "Company Name"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Update Orders
+
+<api-endpoint method="POST" url="/order_update_requests" />
+
+<Warning>
+Order updates require full order objects and are processed asynchronously. Monitor callbacks for completion status.
+</Warning>
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique order identifier to update
+</ParamField>
+
+<ParamField body="priority" type="integer">
+  Updated order priority
+</ParamField>
+
+<ParamField body="order_type" type="string">
+  Order type (typically unchanged)
+</ParamField>
+
+<ParamField body="shipping_provider" type="string">
+  Updated shipping provider
+</ParamField>
+
+<ParamField body="line_items" type="array">
+  Updated line items array
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/order_update_requests" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "129374",
+      "order_type": "customer",
+      "priority": 200,
+      "shipping_provider": "masonhub",
+      "shipper_service_level": "express",
+      "line_items": [
+        {
+          "sku_customer_id": "shirts872340",
+          "quantity": 3
+        }
+      ]
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/order_update_requests"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "129374",
+        "order_type": "customer",
+        "priority": 200,
+        "shipping_provider": "masonhub",
+        "shipper_service_level": "express",
+        "line_items": [
+            {
+                "sku_customer_id": "shirts872340",
+                "quantity": 3
+            }
+        ]
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/order_update_requests', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "129374",
+      order_type: "customer",
+      priority: 200,
+      shipping_provider: "masonhub",
+      shipper_service_level: "express",
+      line_items: [
+        {
+          sku_customer_id: "shirts872340",
+          quantity: 3
+        }
+      ]
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+      "customer_identifier": "129374",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Error
+{
+  "error": {
+    "code": "ORDER_NOT_FOUND",
+    "message": "Order with customer_identifier '129374' not found"
+  }
+}
+```
+</ResponseExample>
+
+### Cancel Orders
+
+<api-endpoint method="POST" url="/order_cancel_requests" />
+
+Cancel one or more orders by customer identifier or cancel request ID.
+
+<ParamField body="customer_identifier" type="string">
+  Unique order identifier to cancel
+</ParamField>
+
+<ParamField body="order_cancel_request_id" type="string">
+  UUID for cancel request tracking
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/order_cancel_requests" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "129374"
+    },
+    {
+      "order_cancel_request_id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/order_cancel_requests"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "129374"
+    },
+    {
+        "order_cancel_request_id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/order_cancel_requests', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "129374"
+    },
+    {
+      order_cancel_request_id: "550e8400-e29b-41d4-a716-446655440000"
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 2,
+  "records_processed": 2,
+  "records_failed": 0,
+  "records_succeeded": 2,
+  "results": [
+    {
+      "customer_identifier": "129374",
+      "status": "success",
+      "cancel_request_id": "550e8400-e29b-41d4-a716-446655440001"
+    },
+    {
+      "order_cancel_request_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Error
+{
+  "error": {
+    "code": "CANNOT_CANCEL",
+    "message": "Order already shipped and cannot be canceled"
+  }
+}
+```
+</ResponseExample>
+
+## Order Status Lifecycle
+
+<Steps>
+  <Step title="open">
+    Order created and validated, awaiting fulfillment
+  </Step>
+  <Step title="atWarehouse">
+    Order received at distribution center
+  </Step>
+  <Step title="inProcess">
+    Order being picked and packed
+  </Step>
+  <Step title="packed">
+    Order packed and ready to ship
+  </Step>
+  <Step title="fulfilled">
+    Order shipped to customer with tracking
+  </Step>
+  <Step title="delivered">
+    Order delivered to customer (via carrier update)
+  </Step>
+  <Step title="canceled">
+    Order canceled (manual or system)
+  </Step>
+</Steps>
+
+## Advanced Configuration
+
+### Pick From Constraints
+
+Control inventory allocation with granular pick_from rules:
+
+<CodeGroup>
+```json Purchase Order Match
+{
+  "pick_from": [
+    {
+      "match_type": "purchase_order",
+      "match_value": ["PO23423", "PO42322"],
+      "match_style": "hard"
+    }
+  ]
+}
+```
+
+```json Lot Number Match
+{
+  "pick_from": [
+    {
+      "match_type": "lot_number", 
+      "match_value": ["LOT001"],
+      "match_style": "soft"
+    }
+  ]
+}
+```
+
+```json Expiration Date Match
+{
+  "pick_from": [
+    {
+      "match_type": "expiration_date",
+      "match_value": ["2024-12-31"],
+      "match_style": "hard"
+    }
+  ]
+}
+```
+</CodeGroup>
+
+#### Match Styles
+
+<CardGroup cols={2}>
+  <Card
+    title="Hard Match"
+    icon="lock"
+  >
+    **Required constraint** - Order fails if constraint cannot be met
+    
+    Use for critical requirements like specific lot numbers
+  </Card>
+  <Card
+    title="Soft Match"
+    icon="hand-paper"
+  >
+    **Preferred constraint** - System attempts to match but fulfills anyway
+    
+    Use for preferences like newer inventory
+  </Card>
+</CardGroup>
+
+### Order Policies
+
+Configure how orders behave across different scenarios:
+
+<Tabs>
+  <Tab title="Split Policy">
+    **single_shipment**: Never split orders across multiple shipments
+    
+    **allow_splits**: Allow splits for operational efficiency
+    
+    **minimize_splits**: Prefer single shipments but allow splits when necessary
+    
+    ```json
+    {
+      "split_policy": "minimize_splits"
+    }
+    ```
+  </Tab>
+  <Tab title="Backorder Policy">
+    **cancel_shorts**: Cancel unavailable items immediately
+    
+    **backorder**: Hold entire order until all items available
+    
+    **partial_ship**: Ship available items, backorder remainder
+    
+    ```json
+    {
+      "backorder_policy": "partial_ship"
+    }
+    ```
+  </Tab>
+  <Tab title="Routing Policy">
+    **least_cost**: Route to minimize shipping costs
+    
+    **fastest**: Route for fastest delivery
+    
+    **specific_facility**: Route to designated facility
+    
+    ```json
+    {
+      "routing_policy": "fastest"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Value Added Services
+
+Enhance orders with additional services:
+
+```json
+{
+  "value_added_services": [
+    "Gift Wrapping",
+    "Complimentary Handkerchief", 
+    "Express Processing",
+    "Signature Required",
+    "Insurance Coverage"
+  ]
+}
+```
+
+## Event Callbacks
+
+### Order Events
+
+Real-time order status updates via **orderEvent** callbacks:
+
+<CodeGroup>
+```json Order Fulfilled
+{
+  "callback_url": "https://client.com/api/orderEvent",
+  "message_type": "orderEvent",
+  "message_id": "0896116f-e54b-4756-9d3e-1b0c4a25d821",
+  "data": [
+    {
+      "order_id": "8f1316d5-859f-4802-98b0-63d03a9517ac",
+      "customer_identifier": "129374",
+      "status": "fulfilled",
+      "shipments": [
+        {
+          "shipment_id": "88888",
+          "shipping_provider": "UPS",
+          "shipper_service_level": "ground",
+          "tracking_number": "1z324897234nferg45",
+          "tracking_url": "http://ups.com/tracking/1z324897234nferg45",
+          "shipment_date_time": "2018-08-06T15:11:19Z",
+          "shipment_line_items": [
+            {
+              "sku_customer_id": "shirts872340",
+              "quantity": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json Order with Shorts
+{
+  "callback_url": "https://client.com/api/orderEvent",
+  "message_type": "orderEvent", 
+  "message_id": "0896116f-e54b-4756-9d3e-1b0c4a25d821",
+  "data": [
+    {
+      "order_id": "8f1316d5-859f-4802-98b0-63d03a9517ac",
+      "customer_identifier": "129374",
+      "status": "fulfilled",
+      "shipments": [
+        {
+          "shipment_id": "88888",
+          "shipping_provider": "UPS",
+          "tracking_number": "1z324897234nferg45",
+          "shipment_line_items": [
+            {
+              "sku_customer_id": "shirts872340",
+              "quantity": 1
+            }
+          ]
+        }
+      ],
+      "shorts": [
+        {
+          "sku_customer_id": "pants3422",
+          "quantity": 1,
+          "reason": "damage"
+        }
+      ]
+    }
+  ]
+}
+```
+</CodeGroup>
+
+### Update Resolution
+
+Monitor asynchronous operations:
+
+<Accordion title="Order Update Resolution">
+  **orderUpdateResolution** callbacks indicate success/failure of update requests.
+  
+  ```json
+  {
+    "message_type": "orderUpdateResolution",
+    "data": {
+      "update_request_id": "uuid-here",
+      "customer_identifier": "129374",
+      "status": "success",
+      "updated_at": "2018-08-06T15:11:19Z"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Order Cancel Resolution">
+  **orderCancelResolution** callbacks indicate success/failure of cancel requests.
+  
+  ```json
+  {
+    "message_type": "orderCancelResolution",
+    "data": {
+      "cancel_request_id": "uuid-here", 
+      "customer_identifier": "129374",
+      "status": "success",
+      "canceled_at": "2018-08-06T15:11:19Z"
+    }
+  }
+  ```
+</Accordion>
+
+## Line Item Configuration
+
+### Basic Line Items
+
+```json
+{
+  "line_items": [
+    {
+      "sku_customer_id": "shirts872340",
+      "quantity": 2,
+      "promised_delivery_date": "2018-08-15T17:32:28Z",
+      "estimated_delivery_date": "2018-08-15T17:32:28Z"
+    }
+  ]
+}
+```
+
+### Advanced Line Items
+
+```json
+{
+  "line_items": [
+    {
+      "sku_customer_id": "shirts872340",
+      "quantity": 2,
+      "unit_price": 25.99,
+      "line_total": 51.98,
+      "promised_delivery_date": "2018-08-15T17:32:28Z",
+      "pick_from": [
+        {
+          "match_type": "purchase_order",
+          "match_value": ["PO23423"],
+          "match_style": "hard"
+        }
+      ],
+      "personalization": {
+        "monogram": "JJS",
+        "color_preference": "navy"
+      }
+    }
+  ]
+}
+```
+
+## Monitoring Operations
+
+### Check Update Status
+
+```http
+GET /order_update_requests?id=uuid1,uuid2&limit=10
+Authorization: Bearer your_jwt_token
+```
+
+### Check Cancel Status
+
+```http
+GET /order_cancel_requests?id=uuid1,uuid2&limit=10
+Authorization: Bearer your_jwt_token
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card
+    title="Address Validation"
+    icon="map-marked-alt"
+  >
+    Always provide complete shipping and billing addresses with proper country codes
+  </Card>
+  <Card
+    title="Asynchronous Monitoring"
+    icon="clock"
+  >
+    Monitor callback events for update/cancel confirmations rather than polling
+  </Card>
+  <Card
+    title="SKU Validation"
+    icon="check-circle"
+  >
+    Ensure all line item SKUs exist and have available inventory before creating orders
+  </Card>
+  <Card
+    title="Batch Processing"
+    icon="layer-group"
+  >
+    Process multiple orders in single requests when possible for better efficiency
+  </Card>
+</CardGroup>
+
+### Performance Tips
+
+1. **Use Summary Lists**: Start with `list_type=summary` for order browsing
+2. **Date Filtering**: Use `sdt` parameter to fetch recent updates only
+3. **Reasonable Limits**: Use appropriate `limit` values to avoid timeouts
+4. **Callback Optimization**: Process callbacks efficiently to handle high order volumes
+
+## Error Handling
+
+Common error scenarios and solutions:
+
+<Accordion title="Invalid SKU">
+  **Error**: `SKU_NOT_FOUND`
+  
+  **Cause**: Line item references non-existent SKU
+  
+  **Solution**: Verify SKU exists in catalog before creating order
+</Accordion>
+
+<Accordion title="Insufficient Inventory">
+  **Error**: `INSUFFICIENT_INVENTORY`
+  
+  **Cause**: Requested quantity exceeds available inventory
+  
+  **Solution**: Check inventory levels or adjust backorder policy
+</Accordion>
+
+<Accordion title="Invalid Address">
+  **Error**: `ADDRESS_VALIDATION_FAILED`
+  
+  **Cause**: Incomplete or invalid shipping/billing address
+  
+  **Solution**: Provide complete address with valid postal codes and country codes
+</Accordion>
+
+## Next Steps
+
+After setting up order management, explore:
+
+- [Shipment Tracking](/api/shipments) for delivery monitoring
+- [Inventory Management](/api/inventory) for stock levels
+- [Callback Configuration](/api/callbacks) for event handling

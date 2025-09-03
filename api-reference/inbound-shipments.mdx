@@ -1,0 +1,825 @@
+---
+title: 'Inbound Shipments (ASN)'
+description: 'Manage incoming inventory shipments with advance ship notices and receiving tracking'
+---
+
+# Inbound Shipments API (ASN)
+
+The Inbound Shipments API, also known as ASN (Advance Ship Notice), manages incoming inventory shipments to MasonHub distribution centers. This system allows you to notify MasonHub about expected deliveries, track receiving status, and maintain accurate inventory projections.
+
+<Note>
+Creating inbound shipments automatically updates expected inventory levels and triggers real-time inventory change notifications.
+</Note>
+
+## Core Operations
+
+### Get Inbound Shipments
+
+<api-endpoint method="GET" url="/inbound_shipments" />
+
+Retrieve inbound shipment information with flexible filtering options.
+
+<ParamField query="id" type="array">
+  MasonHub UUIDs (1-30 items)
+</ParamField>
+
+<ParamField query="cid" type="array">
+  Customer identifiers (1-30 items)
+</ParamField>
+
+<ParamField query="cpid" type="array">
+  Customer purchase order IDs
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by shipment status (open, onDock, receivingStarted, receivingComplete)
+</ParamField>
+
+<ParamField query="sdt" type="string">
+  Start date/time (RFC3339 format)
+</ParamField>
+
+<ParamField query="edt" type="string">
+  End date/time (RFC3339 format)
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="limit" type="integer" default="30">
+  Number of results (1-100)
+</ParamField>
+
+<ParamField query="list_type" type="string" default="detail">
+  Response format: "detail" or "summary"
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://app.masonhub.co/{account}/api/v1/inbound_shipments?status=open&sdt=2018-12-01T00:00:00Z&limit=25" \
+  -H "Authorization: Bearer your_jwt_token"
+```
+
+```python Python
+import requests
+
+url = "https://app.masonhub.co/{account}/api/v1/inbound_shipments"
+headers = {
+    "Authorization": "Bearer your_jwt_token"
+}
+params = {
+    "status": "open",
+    "sdt": "2018-12-01T00:00:00Z",
+    "limit": 25
+}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  status: 'open',
+  sdt: '2018-12-01T00:00:00Z',
+  limit: '25'
+});
+
+const response = await fetch(`https://app.masonhub.co/{account}/api/v1/inbound_shipments?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token'
+  }
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "limit": 25,
+  "offset": 0,
+  "list_type": "detail",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "shipment32432",
+      "customer_purchase_order_id": "po234532",
+      "status": "open",
+      "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "expected_arrival_date": "2018-12-11T10:00:00Z",
+      "shipper_name": "Freddie's Pirate Army",
+      "tracking_number": "356732154",
+      "line_items": [
+        {
+          "customer_sku_id": "10000",
+          "quantity": 80,
+          "received_quantity": 0
+        }
+      ],
+      "created_at": "2018-12-01T10:00:00Z",
+      "updated_at": "2018-12-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "INVALID_DATE_FORMAT",
+    "message": "Date must be in RFC3339 format"
+  }
+}
+```
+</ResponseExample>
+
+#### Query Parameters
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `id` | array of UUIDs | MasonHub UUIDs [1..30] | - |
+| `cid` | array of strings | Customer identifiers [1..30] | - |
+| `cpid` | array of strings | Customer purchase order IDs | - |
+| `status` | string | Filter by shipment status | - |
+| `sdt` | string | Start date/time (RFC3339) | - |
+| `edt` | string | End date/time (RFC3339) | - |
+| `offset` | integer | Pagination offset | 0 |
+| `limit` | integer | Number of results [1..100] | 30 |
+| `list_type` | string | `detail` or `summary` | `detail` |
+
+### Create Inbound Shipments
+
+<api-endpoint method="POST" url="/inbound_shipments" />
+
+Create advance ship notices for incoming inventory shipments.
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique shipment identifier
+</ParamField>
+
+<ParamField body="customer_purchase_order_id" type="string" required>
+  Purchase order identifier
+</ParamField>
+
+<ParamField body="inventory_location_id" type="string" required>
+  Target warehouse location UUID
+</ParamField>
+
+<ParamField body="expected_arrival_date" type="string" required>
+  Expected delivery date (RFC3339)
+</ParamField>
+
+<ParamField body="shipper_name" type="string" required>
+  Name of shipping company/supplier
+</ParamField>
+
+<ParamField body="line_items" type="array" required>
+  Array of SKUs and quantities being shipped
+</ParamField>
+
+<ParamField body="carrier_information" type="object">
+  Detailed carrier and logistics information
+</ParamField>
+
+<ParamField body="tracking_number" type="string">
+  Shipment tracking number
+</ParamField>
+
+<ParamField body="special_instructions" type="string">
+  Special handling instructions
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/inbound_shipments" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "shipment32432",
+      "customer_purchase_order_id": "po234532",
+      "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "carrier_information": {
+        "name": "Frankies Red Hot Carrier",
+        "type": "TL",
+        "contact_name": "John Jacob",
+        "driver_name": "Donny James Jr",
+        "driver_phone": "555-343-4213"
+      },
+      "tracking_number": "356732154",
+      "shipper_name": "Freddies Pirate Army",
+      "shipper_city": "Kalamazoo",
+      "shipper_locale": "MI",
+      "shipper_country": "US",
+      "expected_arrival_date": "2018-12-11T10:00:00Z",
+      "special_instructions": "Fold using provided template during put away",
+      "line_items": [
+        {
+          "customer_sku_id": "10000",
+          "quantity": 80
+        },
+        {
+          "customer_sku_id": "10001",
+          "quantity": 20
+        }
+      ]
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/inbound_shipments"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "customer_identifier": "shipment32432",
+        "customer_purchase_order_id": "po234532",
+        "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+        "carrier_information": {
+            "name": "Frankies Red Hot Carrier",
+            "type": "TL",
+            "contact_name": "John Jacob",
+            "driver_name": "Donny James Jr",
+            "driver_phone": "555-343-4213"
+        },
+        "tracking_number": "356732154",
+        "shipper_name": "Freddies Pirate Army",
+        "expected_arrival_date": "2018-12-11T10:00:00Z",
+        "line_items": [
+            {
+                "customer_sku_id": "10000",
+                "quantity": 80
+            }
+        ]
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/inbound_shipments', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      customer_identifier: "shipment32432",
+      customer_purchase_order_id: "po234532",
+      inventory_location_id: "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      carrier_information: {
+        name: "Frankies Red Hot Carrier",
+        type: "TL",
+        contact_name: "John Jacob",
+        driver_name: "Donny James Jr",
+        driver_phone: "555-343-4213"
+      },
+      tracking_number: "356732154",
+      shipper_name: "Freddies Pirate Army",
+      expected_arrival_date: "2018-12-11T10:00:00Z",
+      line_items: [
+        {
+          customer_sku_id: "10000",
+          quantity: 80
+        }
+      ]
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1,
+  "results": [
+    {
+      "system_id": "550e8400-e29b-41d4-a716-446655440000",
+      "customer_identifier": "shipment32432",
+      "status": "success"
+    }
+  ]
+}
+```
+
+```json 400 Validation Error
+{
+  "error": {
+    "code": "INVALID_LOCATION_ID",
+    "message": "Specified inventory location not found or access denied"
+  }
+}
+```
+</ResponseExample>
+
+#### Required Fields
+
+<CardGroup cols={2}>
+  <Card
+    title="Shipment Identity"
+    icon="id-card"
+  >
+    - `customer_identifier`
+    - `customer_purchase_order_id`
+    - `inventory_location_id`
+  </Card>
+  <Card
+    title="Logistics Information"
+    icon="truck"
+  >
+    - `expected_arrival_date`
+    - `shipper_name`
+    - `line_items` array
+  </Card>
+  <Card
+    title="Optional Details"
+    icon="info-circle"
+  >
+    - `carrier_information`
+    - `tracking_number`
+    - `special_instructions`
+  </Card>
+  <Card
+    title="Geographic Data"
+    icon="map-marker-alt"
+  >
+    - `shipper_city`
+    - `shipper_locale`
+    - `shipper_country`
+  </Card>
+</CardGroup>
+
+### Update Inbound Shipments
+
+<api-endpoint method="PUT" url="/inbound_shipments" />
+
+<Warning>
+Only shipments in 'open' status can be updated. Updates require full object replacement.
+</Warning>
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique shipment identifier to update
+</ParamField>
+
+<ParamField body="expected_arrival_date" type="string">
+  Updated expected delivery date (RFC3339)
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PUT "https://app.masonhub.co/{account}/api/v1/inbound_shipments" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "shipment32432",
+      "customer_purchase_order_id": "po234532",
+      "inventory_location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93",
+      "expected_arrival_date": "2018-12-12T10:00:00Z",
+      "shipper_name": "Freddies Pirate Army",
+      "line_items": [
+        {
+          "customer_sku_id": "10000",
+          "quantity": 80
+        }
+      ]
+    }
+  ]'
+```
+</RequestExample>
+
+### Delete Inbound Shipments
+
+<api-endpoint method="DELETE" url="/inbound_shipments" />
+
+Remove inbound shipments that are no longer needed.
+
+<ParamField body="customer_identifier" type="string" required>
+  Unique shipment identifier to delete
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://app.masonhub.co/{account}/api/v1/inbound_shipments" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "customer_identifier": "shipment234523"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/inbound_shipments"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [{"customer_identifier": "shipment234523"}]
+
+response = requests.delete(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_submitted": 1,
+  "records_processed": 1,
+  "records_failed": 0,
+  "records_succeeded": 1
+}
+```
+</ResponseExample>
+
+## Shipment Status Lifecycle
+
+<Steps>
+  <Step title="open">
+    **Created and Awaiting Arrival**
+    
+    Shipment created, expected inventory updated, can be modified or canceled
+  </Step>
+  <Step title="onDock">
+    **Arrived at Facility**
+    
+    Physical shipment received at dock, ready for processing
+  </Step>
+  <Step title="receivingStarted">
+    **Processing Started**
+    
+    Warehouse team has begun receiving and inspecting items
+  </Step>
+  <Step title="receivingComplete">
+    **Fully Processed**
+    
+    All items received and added to available inventory
+  </Step>
+</Steps>
+
+## Carrier Configuration
+
+### Carrier Information Object
+
+<Tabs>
+  <Tab title="Full Truckload (TL)">
+    ```json
+    {
+      "name": "Frankie's Red Hot Carrier",
+      "type": "TL",
+      "contact_name": "John Jacob",
+      "driver_name": "Donny James Jr",
+      "driver_phone": "555-343-4213",
+      "equipment_type": "53' Dry Van",
+      "appointment_required": true
+    }
+    ```
+  </Tab>
+  <Tab title="Less Than Truckload (LTL)">
+    ```json
+    {
+      "name": "Regional LTL Carrier",
+      "type": "LTL",
+      "contact_name": "Jane Smith",
+      "pro_number": "12345678",
+      "terminal_location": "Chicago",
+      "delivery_window": "8AM-12PM"
+    }
+    ```
+  </Tab>
+  <Tab title="Small Package">
+    ```json
+    {
+      "name": "UPS",
+      "type": "SP",
+      "service_level": "Ground",
+      "tracking_url_template": "https://ups.com/track?{tracking_number}",
+      "estimated_delivery": "Next Day"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Line Item Management
+
+### Basic Line Items
+
+```json
+{
+  "line_items": [
+    {
+      "customer_sku_id": "10000",
+      "quantity": 80
+    },
+    {
+      "customer_sku_id": "10001",
+      "quantity": 20
+    }
+  ]
+}
+```
+
+### Advanced Line Items
+
+```json
+{
+  "line_items": [
+    {
+      "customer_sku_id": "10000",
+      "quantity": 80,
+      "lot_number": "LOT001",
+      "expiration_date": "2025-12-31",
+      "unit_cost": 25.50,
+      "quality_requirements": "temperature_controlled",
+      "handling_instructions": "fragile_items"
+    }
+  ]
+}
+```
+
+## Receiving Events & Callbacks
+
+### Inbound Shipment Events
+
+Receive **inboundShipmentEvent** callbacks for status changes:
+
+<CodeGroup>
+```json OnDock Event
+{
+  "callback_url": "https://client.com/api/inbound_event",
+  "message_type": "inboundShipmentEvent",
+  "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+  "data": {
+    "customer_identifier": "shipment32432",
+    "status": "onDock",
+    "as_of": "2018-12-11T09:15:00Z",
+    "dock_number": "D-15",
+    "arrival_time": "2018-12-11T09:00:00Z"
+  }
+}
+```
+
+```json Receiving Started
+{
+  "callback_url": "https://client.com/api/inbound_event",
+  "message_type": "inboundShipmentEvent",
+  "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+  "data": {
+    "customer_identifier": "shipment32432",
+    "status": "receivingStarted",
+    "as_of": "2018-12-11T11:01:24Z",
+    "receiving_team": "Team A",
+    "estimated_completion": "2018-12-11T16:00:00Z"
+  }
+}
+```
+
+```json Receiving Complete
+{
+  "callback_url": "https://client.com/api/inbound_event",
+  "message_type": "inboundShipmentEvent",
+  "message_id": "e58769ec-c4cf-47f9-b80a-378a9b85aeae",
+  "data": {
+    "customer_identifier": "shipment32432",
+    "status": "receivingComplete",
+    "as_of": "2018-12-11T15:53:23Z",
+    "details": {
+      "total_items_expected": 100,
+      "total_items_received": 95,
+      "discrepancies": [
+        {
+          "customer_sku_id": "10000",
+          "expected_quantity": 80,
+          "received_quantity": 75,
+          "variance": -5,
+          "reason": "damaged_units"
+        }
+      ],
+      "additional_items": [
+        {
+          "customer_sku_id": "10002",
+          "quantity": 10,
+          "not_on_original_shipment": true
+        }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Inventory Impact
+
+<Accordion title="Expected Inventory Updates">
+  When creating inbound shipments:
+  
+  1. Expected inventory immediately increases
+  2. **skuInventoryChange** callbacks sent
+  3. Total available-to-sell may increase (based on settings)
+  4. Orders can be allocated against expected inventory
+</Accordion>
+
+<Accordion title="Receiving Completion">
+  When receiving completes:
+  
+  1. Expected inventory decreases
+  2. Available inventory increases by received quantities
+  3. Any discrepancies logged and reported
+  4. Inventory callbacks reflect final counts
+</Accordion>
+
+## Advanced Features
+
+### Quality Control Integration
+
+<CardGroup cols={2}>
+  <Card
+    title="Inspection Requirements"
+    icon="search"
+  >
+    Configure automatic quality control holds for specific SKUs or shipments
+  </Card>
+  <Card
+    title="Damage Tracking"
+    icon="exclamation-triangle"
+  >
+    Automatically track and report damaged items during receiving
+  </Card>
+  <Card
+    title="Lot Management"
+    icon="barcode"
+  >
+    Support lot numbers and expiration dates for traceability
+  </Card>
+  <Card
+    title="Temperature Control"
+    icon="thermometer-half"
+  >
+    Handle temperature-sensitive products with special receiving protocols
+  </Card>
+</CardGroup>
+
+### Exception Handling
+
+<Tabs>
+  <Tab title="Receiving Discrepancies">
+    **Over Receipts**: More items received than expected
+    
+    **Short Receipts**: Fewer items received than expected
+    
+    **Damaged Items**: Items received but not sellable
+    
+    **Wrong Items**: Items not on original shipment
+  </Tab>
+  <Tab title="Carrier Issues">
+    **Late Deliveries**: Shipments arriving after expected date
+    
+    **Missing Documentation**: Incomplete paperwork
+    
+    **Damaged Shipments**: Externally damaged packages
+    
+    **Refused Shipments**: Shipments that cannot be accepted
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card
+    title="Location Validation"
+    icon="map-marked-alt"
+  >
+    Always verify inventory location UUIDs before creating shipments using the inventory locations endpoint
+  </Card>
+  <Card
+    title="SKU Verification"
+    icon="check-circle"
+  >
+    Ensure all line item SKUs exist in your catalog before creating shipments to avoid errors
+  </Card>
+  <Card
+    title="Status Monitoring"
+    icon="eye"
+  >
+    Use callbacks to monitor receiving progress rather than frequent polling for better performance
+  </Card>
+  <Card
+    title="Batch Operations"
+    icon="layer-group"
+  >
+    Process multiple shipments in single requests (up to 10) for better efficiency
+  </Card>
+</CardGroup>
+
+### Timing Considerations
+
+1. **Lead Time Planning**: Create ASNs with sufficient lead time for warehouse planning
+2. **Appointment Scheduling**: Coordinate with MasonHub for dock appointments when required
+3. **Receiving Windows**: Consider warehouse operating hours for expected arrival dates
+4. **Holiday Planning**: Account for warehouse closures and reduced capacity
+
+## Error Handling
+
+Common scenarios and solutions:
+
+<Accordion title="Invalid Location ID">
+  **Error**: `INVALID_LOCATION_ID`
+  
+  **Cause**: Specified inventory location doesn't exist or access denied
+  
+  **Solution**: Verify location ID using inventory locations endpoint
+</Accordion>
+
+<Accordion title="SKU Not Found">
+  **Error**: `LINE_ITEM_SKU_NOT_FOUND`
+  
+  **Cause**: Line item references non-existent SKU
+  
+  **Solution**: Create SKU in catalog before creating inbound shipment
+</Accordion>
+
+<Accordion title="Shipment Not Updatable">
+  **Error**: `SHIPMENT_STATUS_PREVENTS_UPDATE`
+  
+  **Cause**: Attempting to update shipment that's no longer in 'open' status
+  
+  **Solution**: Only update shipments in 'open' status; create new shipment if needed
+</Accordion>
+
+## Integration Patterns
+
+### ERP Integration
+
+```javascript
+// Create inbound shipment from purchase order
+async function createInboundFromPO(purchaseOrder) {
+  const shipment = {
+    customer_identifier: `shipment-${purchaseOrder.id}`,
+    customer_purchase_order_id: purchaseOrder.po_number,
+    inventory_location_id: await getPreferredLocation(purchaseOrder.items),
+    expected_arrival_date: purchaseOrder.expected_delivery,
+    shipper_name: purchaseOrder.vendor.name,
+    line_items: purchaseOrder.items.map(item => ({
+      customer_sku_id: item.sku,
+      quantity: item.quantity
+    }))
+  };
+  
+  return await createInboundShipment([shipment]);
+}
+```
+
+### Inventory Planning
+
+```javascript
+// Monitor receiving progress
+function handleReceivingComplete(callback) {
+  const { customer_identifier, details } = callback.data;
+  
+  // Update inventory projections
+  details.line_items.forEach(item => {
+    updateInventoryProjection(
+      item.customer_sku_id, 
+      item.total_quantity_received
+    );
+  });
+  
+  // Handle discrepancies
+  if (details.discrepancies.length > 0) {
+    processReceivingDiscrepancies(details.discrepancies);
+  }
+}
+```
+
+## Next Steps
+
+After implementing inbound shipment management, explore:
+
+- [Inventory Management](/api/inventory) for tracking received inventory
+- [Order Management](/api/orders) for fulfilling against new inventory
+- [Catalog Management](/api/catalog) for SKU configuration

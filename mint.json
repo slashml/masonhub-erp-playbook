@@ -6,9 +6,9 @@
   },
   "favicon": "/img/mh-logo.png",
   "colors": {
-    "primary": "#2563EB",
-    "light": "#3B82F6",
-    "dark": "#1D4ED8",
+    "primary": "#8957E5",
+    "light": "#8957E5",
+    "dark": "#8957E5",
     "background": {
       "light": "#FFFFFF",
       "dark": "#0D1117"
@@ -24,6 +24,12 @@
     },
     "body": {
       "family": "Inter"
+    }
+  },
+  "api": {
+    "baseUrl": "https://app.masonhub.co/{account}/api/v1",
+    "playground": {
+      "display": "interactive"
     }
   },
   "topbarCtaButton": {
@@ -88,15 +94,15 @@
     {
       "group": "API Reference",
       "pages": [
-        "api/overview",
-        "api/authentication",
-        "api/catalog",
-        "api/orders",
-        "api/inventory",
-        "api/inbound-shipments",
-        "api/shipments",
-        "api/callbacks",
-        "api/datafactory"
+        "api-reference/overview",
+        "api-reference/authentication",
+        "api-reference/catalog",
+        "api-reference/orders",
+        "api-reference/inventory",
+        "api-reference/inbound-shipments",
+        "api-reference/shipments",
+        "api-reference/callbacks",
+        "api-reference/datafactory"
       ]
     },
     {

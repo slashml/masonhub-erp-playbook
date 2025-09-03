@@ -1,0 +1,875 @@
+---
+title: 'DataFactory Testing'
+description: 'Testing and simulation utility for validating integrations in sandbox environment'
+---
+
+# DataFactory Testing API
+
+DataFactory is MasonHub's powerful testing and simulation utility that allows you to trigger various OMS actions and callbacks in the sandbox environment. This comprehensive tool helps you test integration workflows, simulate real-world scenarios, and validate your system behavior before production deployment.
+
+<Warning>
+DataFactory is only available in the sandbox environment. Use it to test integrations thoroughly before deploying to production.
+</Warning>
+
+## Overview
+
+DataFactory provides comprehensive testing capabilities:
+
+<CardGroup cols={2}>
+  <Card
+    title="Inventory Simulation"
+    icon="warehouse"
+  >
+    Simulate inventory changes, receipts, and adjustments with realistic scenarios
+  </Card>
+  <Card
+    title="Order Fulfillment"
+    icon="truck"
+  >
+    Trigger order shipping, multi-shipments, shorts, and delivery events
+  </Card>
+  <Card
+    title="Callback Testing"
+    icon="bell"
+  >
+    Generate all callback types to test webhook handling
+  </Card>
+  <Card
+    title="Workflow Validation"
+    icon="check-double"
+  >
+    Test complete end-to-end integration workflows
+  </Card>
+</CardGroup>
+
+## Inventory Operations
+
+### Create Available Inventory
+
+<api-endpoint method="POST" url="/data_factory/createAvailable" />
+
+Simulate inventory receipts and additions for testing purposes.
+
+<ParamField body="sku_id" type="string" required>
+  UUID of the SKU to add inventory for
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Amount of inventory to add
+</ParamField>
+
+<ParamField body="location_id" type="string">
+  Specific inventory location UUID
+</ParamField>
+
+<ParamField body="lot_number" type="string">
+  Lot/batch number for traceability
+</ParamField>
+
+<ParamField body="expiration_date" type="string">
+  Expiration date for perishable items
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/createAvailable" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "quantity": 100,
+      "location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93"
+    },
+    {
+      "sku_id": "f6e11af7-c45b-507f-a66a-fc91f99574bf",
+      "quantity": 50,
+      "lot_number": "LOT001",
+      "expiration_date": "2025-12-31"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/createAvailable"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+        "quantity": 100,
+        "location_id": "bf7bb516-ce52-8950-2a8b-9008f0091d93"
+    },
+    {
+        "sku_id": "f6e11af7-c45b-507f-a66a-fc91f99574bf",
+        "quantity": 50,
+        "lot_number": "LOT001",
+        "expiration_date": "2025-12-31"
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+
+```javascript JavaScript
+const response = await fetch('https://app.masonhub.co/{account}/api/v1/data_factory/createAvailable', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your_jwt_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify([
+    {
+      sku_id: "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      quantity: 100,
+      location_id: "bf7bb516-ce52-8950-2a8b-9008f0091d93"
+    },
+    {
+      sku_id: "f6e11af7-c45b-507f-a66a-fc91f99574bf",
+      quantity: 50,
+      lot_number: "LOT001",
+      expiration_date: "2025-12-31"
+    }
+  ])
+});
+
+const data = await response.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_processed": 2,
+  "inventory_changes": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "previous_quantity": 0,
+      "new_quantity": 100,
+      "callback_triggered": true
+    },
+    {
+      "sku_id": "f6e11af7-c45b-507f-a66a-fc91f99574bf",
+      "previous_quantity": 0,
+      "new_quantity": 50,
+      "callback_triggered": true
+    }
+  ]
+}
+```
+
+```json 400 Error
+{
+  "error": {
+    "code": "INVALID_SKU_ID",
+    "message": "SKU not found in catalog"
+  }
+}
+```
+</ResponseExample>
+
+This operation will:
+- Add inventory in 'available' status
+- Trigger **skuInventoryChange** callbacks
+- Update total available-to-sell quantities
+
+### Simulate Inventory Loss
+
+<api-endpoint method="POST" url="/data_factory/loseInventory" />
+
+Simulate inventory adjustments for damaged, lost, or spoiled items.
+
+<ParamField body="sku_id" type="string" required>
+  UUID of the SKU to adjust inventory for
+</ParamField>
+
+<ParamField body="quantity" type="integer" required>
+  Amount of inventory to remove
+</ParamField>
+
+<ParamField body="reason" type="string">
+  Reason for inventory loss (damage, theft, spoilage, etc.)
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/loseInventory" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "quantity": 10,
+      "reason": "damage"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/loseInventory"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+        "quantity": 10,
+        "reason": "damage"
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_processed": 1,
+  "inventory_adjustments": [
+    {
+      "sku_id": "e5d00ff6-b34a-496e-9559-eb90e99463af",
+      "available_decreased": 10,
+      "lost_increased": 10,
+      "reason": "damage"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Order Fulfillment Simulation
+
+### Ship Orders
+
+<api-endpoint method="POST" url="/data_factory/shipOrder" />
+
+Simulate order shipments to test fulfillment workflows and callbacks.
+
+<ParamField body="order_customer_id" type="string" required>
+  Customer order identifier to ship
+</ParamField>
+
+<ParamField body="shipping_provider" type="string">
+  Carrier for shipment (UPS, FedEx, etc.)
+</ParamField>
+
+<ParamField body="service_level" type="string">
+  Service level (ground, express, overnight)
+</ParamField>
+
+<ParamField body="simulate_shorts" type="boolean">
+  Simulate short shipments (partial fulfillment)
+</ParamField>
+
+<ParamField body="tracking_number" type="string">
+  Custom tracking number for testing
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://app.masonhub.co/{account}/api/v1/data_factory/shipOrder" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "order_customer_id": "test-order-001",
+      "shipping_provider": "UPS",
+      "service_level": "ground"
+    }
+  ]'
+```
+
+```python Python
+import requests
+import json
+
+url = "https://app.masonhub.co/{account}/api/v1/data_factory/shipOrder"
+headers = {
+    "Authorization": "Bearer your_jwt_token",
+    "Content-Type": "application/json"
+}
+
+data = [
+    {
+        "order_customer_id": "test-order-001",
+        "shipping_provider": "UPS",
+        "service_level": "ground",
+        "simulate_shorts": False
+    }
+]
+
+response = requests.post(url, headers=headers, data=json.dumps(data))
+result = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "records_processed": 1,
+  "shipments_created": [
+    {
+      "order_customer_id": "test-order-001",
+      "tracking_number": "1Z999AA1234567890",
+      "shipment_status": "shipped",
+      "callbacks_triggered": ["orderEvent", "shipmentEvent"]
+    }
+  ]
+}
+```
+</ResponseExample>
+
+<Tabs>
+  <Tab title="Basic Shipment">
+    Simple order shipment with standard carrier and service level
+  </Tab>
+    <Tab title="Multi-Shipment with Shorts">
+    Simulate partial shipments and inventory shortages for comprehensive testing
+  </Tab>
+</Tabs>
+
+## Callback Testing
+
+### Trigger Specific Callbacks
+```
+
+```json Response
+{
+  "orders_processed": 1,
+  "shipments_created": 2,
+  "callbacks_triggered": [
+    "orderEvent"
+  ],
+  "shipment_details": [
+    {
+      "shipment_id": "test-ship-001",
+      "tracking_number": "1Z999AA1234567890",
+      "line_items": [
+        {
+          "sku_customer_id": "sku-003",
+          "quantity": 2
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### Parameters
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `order_customer_id` | string | Customer order identifier |
+| `shorts` | array | SKU identifiers to simulate shortages |
+| `number_of_shipments` | integer | Number of shipments to create (1-5) |
+| `shipping_provider` | string | Carrier simulation (UPS, FedEx, USPS) |
+| `randomize_tracking` | boolean | Generate random tracking numbers |
+
+### Delivery Events
+
+<CodeGroup>
+```json Delivery Simulation
+POST /data_factory/orderShipmentEvent
+
+[
+  {
+    "tracking_number": "1Z999AA1234567890",
+    "event": "delivered",
+    "delivery_location": "Front Door",
+    "signed_by": "John Doe"
+  }
+]
+```
+
+```json In-Transit Update
+POST /data_factory/orderShipmentEvent
+
+[
+  {
+    "tracking_number": "1Z999AA1234567890",
+    "event": "inTransit",
+    "location": "Chicago, IL",
+    "estimated_delivery": "2024-01-15T17:00:00Z"
+  }
+]
+```
+</CodeGroup>
+
+#### Available Events
+
+<Steps>
+  <Step title="tendered">
+    Package tendered to carrier - initial scan
+  </Step>
+  <Step title="inTransit">
+    Package in transit with location updates
+  </Step>
+  <Step title="outForDelivery">
+    Package out for delivery on delivery vehicle
+  </Step>
+  <Step title="delivered">
+    Package successfully delivered
+  </Step>
+  <Step title="undeliverable">
+    Package undeliverable - return to sender
+  </Step>
+</Steps>
+
+## Order Management Operations
+
+### Resolve Update Requests
+
+<CodeGroup>
+```json Successful Update
+POST /data_factory/resolveOrderUpdate
+
+[
+  {
+    "order_update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+    "resolution": "success",
+    "resolution_notes": "Address updated successfully"
+  }
+]
+```
+
+```json Failed Update
+POST /data_factory/resolveOrderUpdate
+
+[
+  {
+    "order_update_request_id": "0b744e29-b668-4486-85dd-82528b5da0dd",
+    "resolution": "failure",
+    "error_reason": "Order already shipped",
+    "error_code": "ORDER_STATUS_PREVENTS_UPDATE"
+  }
+]
+```
+</CodeGroup>
+
+### Resolve Cancel Requests
+
+```json
+POST /data_factory/resolveOrderCancel
+
+[
+  {
+    "order_cancel_request_id": "1c855f3a-f779-5597-9eed-93639c6eb0ee",
+    "resolution": "success",
+    "refund_amount": 99.99,
+    "refund_method": "original_payment"
+  }
+]
+```
+
+## Inbound Shipment Simulation
+
+### Receiving Events
+
+<CodeGroup>
+```json Complete Receiving
+POST /data_factory/inboundShipmentEvent
+
+[
+  {
+    "customer_identifier": "shipment-test-001",
+    "event": "receivingCompleted",
+    "randomize_receipt_qty": false,
+    "randomize_inventory_statuses": false
+  }
+]
+```
+
+```json Randomized Receiving
+POST /data_factory/inboundShipmentEvent
+
+[
+  {
+    "customer_identifier": "shipment-test-002",
+    "event": "receivingCompleted",
+    "randomize_receipt_qty": true,
+    "randomize_inventory_statuses": true,
+    "variance_percentage": 10
+  }
+]
+```
+</CodeGroup>
+
+#### Event Types
+
+<Tabs>
+  <Tab title="Arrival Events">
+    **onDock**: Shipment arrived at facility dock
+    
+    **receivingStarted**: Warehouse team started processing
+    
+    **receivingCompleted**: All items processed and put away
+  </Tab>
+  <Tab title="Randomization Options">
+    **randomize_receipt_qty**: Creates realistic receiving variances
+    
+    **randomize_inventory_statuses**: Distributes items across quality statuses
+    
+    **variance_percentage**: Controls variance amount (1-50%)
+  </Tab>
+</Tabs>
+
+#### Randomized Status Distribution
+
+When `randomize_inventory_statuses` is enabled:
+
+<CardGroup cols={3}>
+  <Card
+    title="Available (70%)"
+    icon="check-circle"
+    color="#10b981"
+  >
+    Items received in good condition, ready for sale
+  </Card>
+  <Card
+    title="Quality Control (15%)"
+    icon="search"
+    color="#f59e0b"
+  >
+    Items requiring inspection before availability
+  </Card>
+  <Card
+    title="Damaged (10%)"
+    icon="exclamation-triangle"
+    color="#ef4444"
+  >
+    Items received with damage requiring disposition
+  </Card>
+  <Card
+    title="Refurbishing (3%)"
+    icon="tools"
+    color="#3b82f6"
+  >
+    Items requiring repair or refurbishment
+  </Card>
+  <Card
+    title="Under Investigation (2%)"
+    icon="question-circle"
+    color="#6b7280"
+  >
+    Items with unclear status requiring investigation
+  </Card>
+</CardGroup>
+
+## Returns Management (RMA)
+
+### RMA Processing Events
+
+<CodeGroup>
+```json Full Return Receipt
+POST /data_factory/rmaEvent
+
+[
+  {
+    "customer_identifier": "rma-test-001",
+    "event": "receiveFull",
+    "randomize_inventory_statuses": true,
+    "inspection_notes": "Items received in good condition"
+  }
+]
+```
+
+```json Partial Return Receipt
+POST /data_factory/rmaEvent
+
+[
+  {
+    "customer_identifier": "rma-test-002",
+    "event": "receivePartial",
+    "partial_percentage": 75,
+    "missing_items": ["sku-001"],
+    "inspection_notes": "One item not returned by customer"
+  }
+]
+```
+</CodeGroup>
+
+#### RMA Event Types
+
+<Steps>
+  <Step title="tendered">
+    Return package tendered to carrier by customer
+  </Step>
+  <Step title="inTransit">
+    Return package in transit to facility
+  </Step>
+  <Step title="delivered">
+    Return package delivered to facility
+  </Step>
+  <Step title="receiveFull">
+    All expected items received and processed
+  </Step>
+  <Step title="receivePartial">
+    Only some expected items received
+  </Step>
+</Steps>
+
+## Testing Workflows
+
+### Basic Integration Test
+
+<Steps>
+  <Step title="Setup Test Data">
+    ```json
+    // Create SKUs with inventory
+    POST /data_factory/createAvailable
+    [{"sku_id": "test-sku-001", "quantity": 100}]
+    ```
+  </Step>
+  <Step title="Create Test Orders">
+    ```json
+    // Create orders via standard API
+    POST /orders
+    [{"customer_identifier": "test-order-001", ...}]
+    ```
+  </Step>
+  <Step title="Simulate Fulfillment">
+    ```json
+    // Ship the orders
+    POST /data_factory/shipOrder
+    [{"order_customer_id": "test-order-001"}]
+    ```
+  </Step>
+  <Step title="Verify Callbacks">
+    Monitor webhook endpoints for expected callbacks
+  </Step>
+</Steps>
+
+### Advanced Scenario Testing
+
+<Accordion title="Multi-Shipment Order Flow">
+  Test complex order scenarios:
+  
+  1. Create order with multiple line items
+  2. Simulate partial inventory shortage
+  3. Create multiple shipments with different carriers
+  4. Track delivery events for each shipment
+  5. Verify customer notifications
+</Accordion>
+
+<Accordion title="Returns Processing Flow">
+  Test complete return workflow:
+  
+  1. Create fulfilled order
+  2. Initiate RMA request
+  3. Simulate return shipment
+  4. Process partial receipt with damage
+  5. Verify inventory adjustments
+</Accordion>
+
+<Accordion title="Inventory Variance Testing">
+  Test receiving discrepancies:
+  
+  1. Create inbound shipment
+  2. Simulate receiving with variances
+  3. Distribute items across quality statuses
+  4. Verify exception handling
+  5. Test disposition workflows
+</Accordion>
+
+## Callback Validation
+
+### Expected Callback Events
+
+DataFactory operations trigger production-equivalent callbacks:
+
+<CardGroup cols={2}>
+  <Card
+    title="Inventory Events"
+    icon="warehouse"
+  >
+    **skuInventoryChange**: After createAvailable, loseInventory
+    
+    **snapshotReady**: Not triggered by DataFactory
+  </Card>
+  <Card
+    title="Order Events"
+    icon="shopping-cart"
+  >
+    **orderEvent**: After shipOrder, delivery events
+    
+    **orderUpdateResolution**: After resolveOrderUpdate
+    
+    **orderCancelResolution**: After resolveOrderCancel
+  </Card>
+  <Card
+    title="Fulfillment Events"
+    icon="truck"
+  >
+    **inboundShipmentEvent**: After inbound simulations
+    
+    **shipmentEvent**: After shipping operations
+  </Card>
+  <Card
+    title="Returns Events"
+    icon="undo"
+  >
+    **rmaEvent**: After RMA simulations
+    
+    **qualityEvent**: During randomized processing
+  </Card>
+</CardGroup>
+
+### Callback Testing Strategy
+
+<Tabs>
+  <Tab title="Webhook Validation">
+    ```javascript
+    // Test webhook handler
+    const testWebhook = async (eventType, testData) => {
+      // Trigger DataFactory event
+      await triggerDataFactoryEvent(eventType, testData);
+      
+      // Wait for callback
+      const callback = await waitForCallback(eventType, 30000);
+      
+      // Validate payload
+      expect(callback.message_type).toBe(eventType);
+      expect(callback.data).toBeDefined();
+      
+      // Verify business logic
+      await verifyBusinessLogic(callback.data);
+    };
+    ```
+  </Tab>
+  <Tab title="Error Handling">
+    ```javascript
+    // Test error scenarios
+    const testErrorHandling = async () => {
+      // Simulate webhook failure
+      mockWebhookFailure(500);
+      
+      // Trigger event
+      await triggerDataFactoryEvent('orderEvent', testData);
+      
+      // Verify retry logic
+      const retryAttempts = await getRetryAttempts();
+      expect(retryAttempts).toBeGreaterThan(1);
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Performance Testing
+
+### Load Testing with DataFactory
+
+<CodeGroup>
+```javascript Batch Operations
+// Test batch processing
+const batchTest = async () => {
+  const promises = [];
+  
+  for (let i = 0; i < 100; i++) {
+    promises.push(
+      dataFactory.shipOrder([{
+        order_customer_id: `test-order-${i}`
+      }])
+    );
+  }
+  
+  const results = await Promise.all(promises);
+  
+  // Verify all callbacks received
+  await verifyCallbackCounts('orderEvent', 100);
+};
+```
+
+```javascript Concurrent Testing
+// Test concurrent operations
+const concurrentTest = async () => {
+  const operations = [
+    () => dataFactory.createAvailable([{sku_id: 'test-1', quantity: 50}]),
+    () => dataFactory.shipOrder([{order_customer_id: 'order-1'}]),
+    () => dataFactory.inboundShipmentEvent([{
+      customer_identifier: 'shipment-1',
+      event: 'receivingCompleted'
+    }])
+  ];
+  
+  await Promise.all(operations.map(op => op()));
+  
+  // Verify system consistency
+  await verifySystemState();
+};
+```
+</CodeGroup>
+
+## Best Practices
+
+### Test Data Management
+
+<CardGroup cols={2}>
+  <Card
+    title="Consistent Identifiers"
+    icon="id-card"
+  >
+    Use predictable, test-specific IDs to avoid conflicts with other tests
+  </Card>
+  <Card
+    title="Data Isolation"
+    icon="layer-group"
+  >
+    Separate test scenarios to prevent interference between test runs
+  </Card>
+  <Card
+    title="State Management"
+    icon="database"
+  >
+    Reset test state between runs for consistent results
+  </Card>
+  <Card
+    title="Documentation"
+    icon="file-alt"
+  >
+    Document test scenarios and expected outcomes
+  </Card>
+</CardGroup>
+
+### Integration Testing Strategy
+
+1. **Start Simple**: Begin with basic CRUD operations
+2. **Add Complexity**: Gradually introduce complex scenarios
+3. **Test Edge Cases**: Validate error conditions and edge cases
+4. **Performance Testing**: Test with realistic data volumes
+5. **End-to-End Validation**: Test complete business workflows
+
+### Limitations & Considerations
+
+<Warning>
+**Sandbox Only**: DataFactory is not available in production environments
+</Warning>
+
+<Note>
+**Test Data**: Creates simulated data that doesn't reflect real inventory or order states
+</Note>
+
+- **Rate Limits**: Standard API rate limits apply to DataFactory operations
+- **State Consistency**: Maintains sandbox state consistency but may not match production patterns
+- **Timing**: Events are triggered immediately, not following real-world timing patterns
+
+## Next Steps
+
+After using DataFactory for testing, explore:
+
+- [Callback Configuration](/api/callbacks) for webhook setup
+- [Authentication](/api/authentication) for security testing
+- [Order Management](/api/orders) for production order handling

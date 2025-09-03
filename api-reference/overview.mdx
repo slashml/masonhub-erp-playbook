@@ -1,0 +1,126 @@
+---
+title: 'API Reference'
+description: 'Complete MasonHub Order Management System API reference and documentation'
+---
+
+# Introduction
+
+> Comprehensive Order Management System API for inventory, orders, and fulfillment
+
+The MasonHub REST API enables you to programmatically manage your entire supply chain operations, from catalog management to order fulfillment and everything in between.
+
+## Endpoints
+
+### Core Resources
+* [Catalog Management](/api-reference/catalog): SKU management, product information, and catalog operations
+* [Order Management](/api-reference/orders): Order creation, updates, cancellation, and lifecycle management  
+* [Inventory Management](/api-reference/inventory): Real-time inventory tracking, allocation, and availability
+
+### Fulfillment Operations
+* [Inbound Shipments](/api-reference/inbound-shipments): ASN management and receiving operations
+* [Shipments](/api-reference/shipments): Outbound shipment tracking and carrier information
+
+### Integration Tools
+* [Callbacks & Events](/api-reference/callbacks): Real-time webhooks for order and shipment events
+* [DataFactory](/api-reference/datafactory): Testing utilities for simulating operations and generating test data
+
+## Authentication
+
+You can generate an API key through your MasonHub dashboard. API keys are associated with your account and provide access to all MasonHub API endpoints.
+
+### Bearer Token Authentication
+
+The MasonHub API uses JWT Bearer tokens for authentication. Include your token in the Authorization header of all requests.
+
+Bearer tokens begin with the `eyJ` prefix and are used for all API operations. Keep your bearer tokens secret.
+
+<Note>
+All API endpoints require HTTPS with a valid JWT Bearer token. Requests over HTTP or without authentication will be rejected.
+</Note>
+
+### Using Your Token
+
+Include the bearer token in the Authorization header:
+
+```bash
+curl -X GET "https://app.masonhub.co/{account}/api/v1/orders" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## Base URLs
+
+<Tabs>
+  <Tab title="Sandbox">
+    ```
+    https://sandbox.masonhub.co/{account_slug}/api/v1/
+    ```
+    Use for development and testing
+  </Tab>
+  <Tab title="Production">
+    ```
+    https://app.masonhub.co/{account_slug}/api/v1/
+    ```
+    Live production environment
+  </Tab>
+</Tabs>
+
+## API Design Principles
+
+The MasonHub API follows consistent design principles:
+
+<CardGroup cols={2}>
+  <Card
+    title="Search-First Design"
+    icon="magnifying-glass"
+  >
+    GET methods use search parameters for composability and flexible data retrieval
+  </Card>
+  <Card
+    title="Batch Operations"
+    icon="layer-group"
+  >
+    All methods accept/return arrays for efficient bulk operations
+  </Card>
+  <Card
+    title="Flexible Responses"
+    icon="toggle-on"
+  >
+    Use `list_type=detail|summary` for appropriate response detail levels
+  </Card>
+  <Card
+    title="RESTful Design"
+    icon="code"
+  >
+    Standard GET, POST, PUT, DELETE operations (No PATCH)
+  </Card>
+</CardGroup>
+
+## Data Formats
+
+### Date and Time
+All timestamps use **RFC3339** format for consistency:
+```
+2024-01-15T10:30:00Z
+```
+
+### Pagination
+Standard pagination parameters across all list endpoints:
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `limit` | integer | Number of results [1..100] | 30 |
+| `offset` | integer | Pagination offset | 0 |
+
+### Response Format
+All responses follow a consistent structure:
+
+```json
+{
+  "limit": 30,
+  "offset": 0,
+  "list_type": "detail",
+  "data": [
+    // Array of results
+  ]
+}
+```
