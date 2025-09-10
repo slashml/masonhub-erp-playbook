@@ -40,7 +40,7 @@ Array of order objects with the following fields:
 |-------|------|----------|-------------|
 | `customer_identifier` | string | Yes | Unique order identifier |
 | `order_type` | string | Yes | Order type (e.g., "customer") |
-| `priority` | integer | No | Order priority (higher = more urgent) |
+| `priority` | integer | No | Order priority (1 has higher priority than 100) |
 | `shipping_provider` | string | Yes | Shipping provider name |
 | `shipper_service_level` | string | Yes | Service level (ground, express, etc.) |
 | `value_added_services` | array | No | Additional services |
